@@ -1,0 +1,173 @@
+
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Factura Electrónica</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    /* Estilos específicos para PDF */
+    @media print {
+      body, #factura {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+      }
+      input {
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+      }
+      button {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 p-4">
+  <div class="mx-auto bg-white p-6 rounded-lg shadow-none" id="factura" style="width: 180mm; min-height: 190mm;">
+    <img src="banner.jpeg" class="w-full mb-4 mx-auto" alt="Logo" style="max-width: 100%; height: auto;">
+    <div class="flex justify-between items-center mb-4">
+      
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+      <div>
+        <label class="block font-semibold">Fecha:</label>
+        <input type="date" class="w-full border-b-2 border-gray-300 px-1 py-1" />
+      </div>
+      <div>
+        <label class="block font-semibold">Nombre del Cliente o Empresa:</label>
+        <input type="text" class="w-full border-b-2 border-gray-300 px-1 py-1" placeholder="Empresa o Persona" />
+      </div>
+      <div>
+        <label class="block font-semibold">Nit o Cedula:</label>
+        <input type="text" class="w-full border-b-2 border-gray-300 px-1 py-1" placeholder="Ej: 1043642482-2" />
+      </div>
+      <div>
+        <label class="block font-semibold">Contacto:</label>
+        <input type="text" class="w-full border-b-2 border-gray-300 px-1 py-1" placeholder="Numero de telefono" />
+      </div>
+    </div>
+
+    <div class="mb-4">
+      <table class="w-full border-collapse border border-gray-400">
+        <thead class="bg-[#e28fe3]">
+          <tr>
+            <th class="py-2 px-2 border border-gray-400">Descripción</th>
+            <th class="py-2 px-2 border border-gray-400">Precio</th>
+            <th class="py-2 px-2 border border-gray-400">Cantidad</th>
+            <th class="py-2 px-2 border border-gray-400">Total</th>
+          </tr>
+        </thead>
+        <tbody id="factura-body">
+          <tr>
+            <td class="border border-gray-400 px-2"><input type="text" class="w-full px-1" placeholder="Panel encajonado" /></td>
+            <td class="border border-gray-400 px-2"><input type="number" class="w-full px-1 precio" placeholder="10.000" /></td>
+            <td class="border border-gray-400 px-2"><input type="number" class="w-full px-1 cantidad" placeholder="2" /></td>
+            <td class="border border-gray-400 px-2 total text-right">$0</td>
+          </tr>
+        </tbody>
+      </table>
+      <button onclick="agregarFila()" class="mt-2 text-sm text-blue-600 underline print:hidden">+ Agregar producto</button>
+    </div>
+
+    <div class="mb-4">
+      <label class="block font-semibold">Transporte:</label>
+      <input type="number" id="transporte" class="w-full border-b-2 border-gray-300 px-1 py-1" value="0" />
+    </div>
+    <div class="text-right text-xl font-bold border-t-2 border-gray-400 pt-2">
+      TOTAL A PAGAR: <span id="totalFinal">$0</span>
+    </div>
+
+    <div class="text-right mt-6 print:hidden">
+      <button onclick="descargarPDF()" class="bg-purple-700 text-white px-4 py-2 rounded hover:bg-purple-800">
+        Descargar Factura
+      </button>
+    </div>
+    
+
+    <footer class="bg-white rounded-lg shadow-sm m-4 dark:bg-[#e28fe3]">
+      <div class="w-full mx-auto max-w-screen-xl p-4 flex flex-col items-center justify-center space-y-2 md:flex-row md:justify-between md:space-y-0">
+        <div class="flex items-center space-x-2">
+          <svg class="w-5 h-5 text-purple-600 dark:text-black" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 16a4 4 0 100-8 4 4 0 000 8z" fill="currentColor"/>
+            <path d="M16 8a1 1 0 100-2 1 1 0 000 2z" fill="currentColor"/>
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M7 3a4 4 0 00-4 4v10a4 4 0 004 4h10a4 4 0 004-4V7a4 4 0 00-4-4H7zm10 2a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h10z" fill="currentColor"/>
+          </svg>
+          
+          <span class="text-sm text-black dark:text-black">
+            <a href="https://www.instagram.com/mobiliarios_ame/" class="hover:underline">@mobiliarios_ame</a>
+          </span>
+        </div>
+        
+        <span class="text-xs font-medium text-black dark:text-black">
+          Alquiles de mobiliarios para eventos y fiestas
+        </span>
+      </div>
+    </footer>
+
+  </div>
+  
+  <script>
+    function calcularTotales() {
+      const filas = document.querySelectorAll("#factura-body tr");
+      let total = 0;
+      filas.forEach(fila => {
+        const precio = parseFloat(fila.querySelector(".precio").value) || 0;
+        const cantidad = parseInt(fila.querySelector(".cantidad").value) || 1;
+        const subtotal = precio * cantidad;
+        fila.querySelector(".total").textContent = '$' + subtotal.toLocaleString('es-CO');
+        total += subtotal;
+      });
+      const transporte = parseFloat(document.getElementById("transporte").value) || 0;
+      total += transporte;
+      document.getElementById("totalFinal").textContent = '$' + total.toLocaleString('es-CO');
+    }
+
+    function agregarFila() {
+      const tbody = document.getElementById("factura-body");
+      const fila = document.createElement("tr");
+      fila.innerHTML = `
+        <td class="border border-gray-400 px-2"><input type="text" class="w-full px-1" placeholder="Descripción" /></td>
+        <td class="border border-gray-400 px-2"><input type="number" class="w-full px-1 precio" value="0" /></td>
+        <td class="border border-gray-400 px-2"><input type="number" class="w-full px-1 cantidad" value="1" /></td>
+        <td class="border border-gray-400 px-2 total text-right">$0</td>
+      `;
+      tbody.appendChild(fila);
+      fila.querySelectorAll("input").forEach(input => input.addEventListener("input", calcularTotales));
+    }
+
+    function descargarPDF() {
+      calcularTotales();
+      const elemento = document.getElementById("factura");
+      const opciones = {
+        margin: [10, 10, 10, 10], // Márgenes ajustados: [top, left, bottom, right]
+        filename: 'factura.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { 
+          scale: 2, 
+          logging: true, 
+          useCORS: true,
+          scrollX: 0,
+          scrollY: 0
+        },
+        jsPDF: { 
+          unit: 'mm', 
+          format: 'a4', 
+          orientation: 'portrait',
+          compress: true
+        }
+      };
+      html2pdf().set(opciones).from(elemento).save();
+    }
+
+    // Inicialización
+    document.querySelectorAll("input").forEach(input => input.addEventListener("input", calcularTotales));
+    calcularTotales();
+  </script>
+</body>
+</html>
